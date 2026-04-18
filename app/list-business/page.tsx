@@ -1,13 +1,114 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import Link from "next/link"
-import { CheckCircle, ArrowRight } from "lucide-react"
-import { categories, cities, states } from "@/lib/data"
+import { useState } from "react";
+import Link from "next/link";
+import { CheckCircle, ArrowRight } from "lucide-react";
+import { categories } from "@/data/categories";
+import { cities, states } from "@/data/cityState";
+
+function slugify(name: string) {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/[\s_-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+interface FormData {
+  // Step 1 – Business Info
+  businessName: string;
+  slug: string;
+  categoryId: string;
+  categoryName: string;
+  contactNumber: string;
+  email: string;
+  website: string;
+  description: string;
+  // Step 2 – Location
+  addressLine1: string;
+  addressLine2: string;
+  area: string;
+  district: string;
+  city: string;
+  state: string;
+  pinCode: string;
+  // Step 3 – Details
+  businessHours: string;
+  yearEstablished: string;
+  images: FileList | null;
+}
+
+const INITIAL: FormData = {
+  businessName: "",
+  slug: "",
+  categoryId: "",
+  categoryName: "",
+  contactNumber: "",
+  email: "",
+  website: "",
+  description: "",
+  addressLine1: "",
+  addressLine2: "",
+  area: "",
+  district: "",
+  city: "",
+  state: "",
+  pinCode: "",
+  businessHours: "",
+  yearEstablished: "",
+  images: null,
+};
 
 export default function ListBusinessPage() {
-  const [step, setStep] = useState(1)
-  const [submitted, setSubmitted] = useState(false)
+  const [step, setStep] = useState(1);
+  const [submitted, setSubmitted] = useState(false);
+  const [form, setForm] = useState<FormData>(INITIAL);
+
+  function set<K extends keyof FormData>(key: K, value: FormData[K]) {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function handleBusinessNameChange(name: string) {
+    set("businessName", name);
+    set("slug", slugify(name));
+  }
+
+  function handleCategoryChange(id: string) {
+    const cat = categories.find((c) => c.id === id);
+    set("categoryId", id);
+    set("categoryName", cat?.name ?? "");
+  }
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (step < 3) {
+      setStep(step + 1);
+    } else {
+      // Build payload matching the Listing interface (server sets id, createdAt, status,
+      // featured, verified, viewCount, rating, reviewCount)
+      const payload = {
+        businessName: form.businessName,
+        slug: form.slug,
+        categoryId: form.categoryId,
+        categoryName: form.categoryName,
+        contactNumber: form.contactNumber,
+        email: form.email,
+        website: form.website,
+        description: form.description,
+        addressLine1: form.addressLine1,
+        addressLine2: form.addressLine2 || undefined,
+        area: form.area,
+        district: form.district,
+        city: form.city,
+        state: form.state,
+        pinCode: form.pinCode,
+        // images would be uploaded separately and URLs stored in images[]
+      };
+      console.log("Submit payload:", payload);
+      setSubmitted(true);
+    }
+  }
 
   if (submitted) {
     return (
@@ -21,7 +122,7 @@ export default function ListBusinessPage() {
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             Thank you for submitting your business. Our team will review and
-            approve your listing within 24-48 hours.
+            approve your listing within 24–48 hours.
           </p>
           <div className="mt-6 flex items-center justify-center gap-3">
             <Link
@@ -39,8 +140,13 @@ export default function ListBusinessPage() {
           </div>
         </div>
       </div>
-    )
+    );
   }
+
+  const inputCls =
+    "h-11 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20";
+  const selectCls =
+    "h-11 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20";
 
   return (
     <>
@@ -68,16 +174,16 @@ export default function ListBusinessPage() {
                 </div>
                 <span
                   className={`hidden text-sm sm:inline ${
-                    s <= step ? "font-medium text-foreground" : "text-muted-foreground"
+                    s <= step
+                      ? "font-medium text-foreground"
+                      : "text-muted-foreground"
                   }`}
                 >
                   {s === 1 ? "Business Info" : s === 2 ? "Location" : "Details"}
                 </span>
                 {s < 3 && (
                   <div
-                    className={`h-0.5 w-8 sm:w-16 ${
-                      s < step ? "bg-primary" : "bg-muted"
-                    }`}
+                    className={`h-0.5 w-8 sm:w-16 ${s < step ? "bg-primary" : "bg-muted"}`}
                   />
                 )}
               </div>
@@ -88,17 +194,10 @@ export default function ListBusinessPage() {
 
       <section className="mx-auto max-w-3xl px-4 py-10">
         <form
-          onSubmit={(e) => {
-            e.preventDefault()
-            if (step < 3) {
-              setStep(step + 1)
-            } else {
-              setSubmitted(true)
-            }
-          }}
+          onSubmit={handleSubmit}
           className="rounded-xl border border-border bg-card p-6 md:p-8"
         >
-          {/* Step 1: Business Info */}
+          {/* ── Step 1: Business Info ── */}
           {step === 1 && (
             <div className="flex flex-col gap-5">
               <h2 className="text-lg font-semibold text-foreground">
@@ -111,11 +210,28 @@ export default function ListBusinessPage() {
                 </label>
                 <input
                   type="text"
+                  value={form.businessName}
+                  onChange={(e) => handleBusinessNameChange(e.target.value)}
                   placeholder="Enter your business name"
-                  className="h-11 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  className={inputCls}
                   required
                 />
               </div>
+
+              {/* Auto-generated slug – read-only preview */}
+              {form.slug && (
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-foreground">
+                    Listing URL slug
+                  </label>
+                  <div className="flex h-11 items-center rounded-lg border border-border bg-muted px-3 text-sm text-muted-foreground">
+                    /listings/
+                    <span className="ml-0.5 font-mono text-foreground">
+                      {form.slug}
+                    </span>
+                  </div>
+                </div>
+              )}
 
               <div className="grid gap-5 sm:grid-cols-2">
                 <div>
@@ -123,7 +239,9 @@ export default function ListBusinessPage() {
                     Category *
                   </label>
                   <select
-                    className="h-11 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    value={form.categoryId}
+                    onChange={(e) => handleCategoryChange(e.target.value)}
+                    className={selectCls}
                     required
                   >
                     <option value="">Select category</option>
@@ -140,8 +258,10 @@ export default function ListBusinessPage() {
                   </label>
                   <input
                     type="tel"
+                    value={form.contactNumber}
+                    onChange={(e) => set("contactNumber", e.target.value)}
                     placeholder="+91 98765 43210"
-                    className="h-11 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    className={inputCls}
                     required
                   />
                 </div>
@@ -154,8 +274,10 @@ export default function ListBusinessPage() {
                   </label>
                   <input
                     type="email"
+                    value={form.email}
+                    onChange={(e) => set("email", e.target.value)}
                     placeholder="business@example.com"
-                    className="h-11 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    className={inputCls}
                     required
                   />
                 </div>
@@ -165,8 +287,10 @@ export default function ListBusinessPage() {
                   </label>
                   <input
                     type="url"
+                    value={form.website}
+                    onChange={(e) => set("website", e.target.value)}
                     placeholder="https://yourbusiness.com"
-                    className="h-11 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    className={inputCls}
                   />
                 </div>
               </div>
@@ -177,6 +301,8 @@ export default function ListBusinessPage() {
                 </label>
                 <textarea
                   rows={4}
+                  value={form.description}
+                  onChange={(e) => set("description", e.target.value)}
                   placeholder="Describe your business, services, and what makes you unique..."
                   className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                   required
@@ -185,7 +311,7 @@ export default function ListBusinessPage() {
             </div>
           )}
 
-          {/* Step 2: Location */}
+          {/* ── Step 2: Location ── */}
           {step === 2 && (
             <div className="flex flex-col gap-5">
               <h2 className="text-lg font-semibold text-foreground">
@@ -198,8 +324,10 @@ export default function ListBusinessPage() {
                 </label>
                 <input
                   type="text"
+                  value={form.addressLine1}
+                  onChange={(e) => set("addressLine1", e.target.value)}
                   placeholder="Street address, building name"
-                  className="h-11 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  className={inputCls}
                   required
                 />
               </div>
@@ -210,44 +338,11 @@ export default function ListBusinessPage() {
                 </label>
                 <input
                   type="text"
+                  value={form.addressLine2}
+                  onChange={(e) => set("addressLine2", e.target.value)}
                   placeholder="Floor, suite, landmark"
-                  className="h-11 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  className={inputCls}
                 />
-              </div>
-
-              <div className="grid gap-5 sm:grid-cols-2">
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-foreground">
-                    State *
-                  </label>
-                  <select
-                    className="h-11 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    required
-                  >
-                    <option value="">Select state</option>
-                    {states.map((state) => (
-                      <option key={state.id} value={state.id}>
-                        {state.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-foreground">
-                    City *
-                  </label>
-                  <select
-                    className="h-11 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    required
-                  >
-                    <option value="">Select city</option>
-                    {cities.map((city) => (
-                      <option key={city.id} value={city.id}>
-                        {city.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
               </div>
 
               <div className="grid gap-5 sm:grid-cols-2">
@@ -257,28 +352,91 @@ export default function ListBusinessPage() {
                   </label>
                   <input
                     type="text"
-                    placeholder="Area name"
-                    className="h-11 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    value={form.area}
+                    onChange={(e) => set("area", e.target.value)}
+                    placeholder="Area / locality name"
+                    className={inputCls}
                     required
                   />
                 </div>
                 <div>
                   <label className="mb-1 block text-sm font-medium text-foreground">
-                    PIN Code *
+                    District *
                   </label>
                   <input
                     type="text"
-                    placeholder="6-digit PIN"
-                    maxLength={6}
-                    className="h-11 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    value={form.district}
+                    onChange={(e) => set("district", e.target.value)}
+                    placeholder="e.g., South Delhi"
+                    className={inputCls}
                     required
                   />
                 </div>
               </div>
+
+              <div className="grid gap-5 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-foreground">
+                    State *
+                  </label>
+                  <select
+                    value={form.state}
+                    onChange={(e) => {
+                      set("state", e.target.value);
+                      set("city", ""); 
+                    }}
+                    className={selectCls}
+                    required
+                  >
+                    <option value="">Select state</option>
+                    {states.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-foreground">
+                    City *
+                  </label>
+                  <select
+                    value={form.city}
+                    onChange={(e) => set("city", e.target.value)}
+                    className={selectCls}
+                    required
+                  >
+                    {(form.state
+                      ? cities.filter((c) => c.stateId === form.state)
+                      : cities
+                    ).map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="sm:w-1/2 sm:pr-2.5">
+                <label className="mb-1 block text-sm font-medium text-foreground">
+                  PIN Code *
+                </label>
+                <input
+                  type="text"
+                  value={form.pinCode}
+                  onChange={(e) => set("pinCode", e.target.value)}
+                  placeholder="6-digit PIN"
+                  maxLength={6}
+                  pattern="\d{6}"
+                  className={inputCls}
+                  required
+                />
+              </div>
             </div>
           )}
 
-          {/* Step 3: Additional Details */}
+          {/* ── Step 3: Additional Details ── */}
           {step === 3 && (
             <div className="flex flex-col gap-5">
               <h2 className="text-lg font-semibold text-foreground">
@@ -291,8 +449,10 @@ export default function ListBusinessPage() {
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g., Mon-Sat: 9:00 AM - 6:00 PM"
-                  className="h-11 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  value={form.businessHours}
+                  onChange={(e) => set("businessHours", e.target.value)}
+                  placeholder="e.g., Mon–Sat: 9:00 AM – 6:00 PM"
+                  className={inputCls}
                 />
               </div>
 
@@ -302,13 +462,16 @@ export default function ListBusinessPage() {
                 </label>
                 <input
                   type="number"
+                  value={form.yearEstablished}
+                  onChange={(e) => set("yearEstablished", e.target.value)}
                   placeholder="e.g., 2015"
                   min={1900}
                   max={2026}
-                  className="h-11 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  className={inputCls}
                 />
               </div>
 
+              {/* images[] – up to 3 on free plan */}
               <div>
                 <label className="mb-2 block text-sm font-medium text-foreground">
                   Upload Business Images
@@ -319,16 +482,39 @@ export default function ListBusinessPage() {
                       Drag and drop images here, or click to browse
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      PNG, JPG up to 5MB each. Maximum 3 images on free plan.
+                      PNG, JPG up to 5 MB each. Maximum 3 images on free plan.
                     </p>
                     <input
                       type="file"
                       accept="image/*"
                       multiple
+                      onChange={(e) => set("images", e.target.files)}
                       className="mt-3 text-sm"
                     />
                   </div>
                 </div>
+                {form.images && form.images.length > 3 && (
+                  <p className="mt-1 text-xs text-destructive">
+                    Free plan allows up to 3 images. Only the first 3 will be
+                    uploaded.
+                  </p>
+                )}
+              </div>
+
+              {/* Read-only system fields notice */}
+              <div className="rounded-lg border border-border bg-muted/40 px-4 py-3 text-xs text-muted-foreground">
+                After submission your listing will have{" "}
+                <span className="font-medium text-foreground">
+                  status: pending
+                </span>{" "}
+                and will be visible once reviewed. Fields like{" "}
+                <span className="font-mono">id</span>,{" "}
+                <span className="font-mono">rating</span>,{" "}
+                <span className="font-mono">reviewCount</span>,{" "}
+                <span className="font-mono">viewCount</span>,{" "}
+                <span className="font-mono">verified</span>, and{" "}
+                <span className="font-mono">featured</span> are managed by the
+                platform.
               </div>
 
               <div className="rounded-lg bg-primary/5 p-4">
@@ -339,13 +525,19 @@ export default function ListBusinessPage() {
                     className="mt-0.5 rounded border-border"
                   />
                   <span className="text-sm text-muted-foreground">
-                    I confirm that the information provided is accurate and I have the
-                    authority to list this business. I agree to the{" "}
-                    <Link href="/about" className="text-primary hover:underline">
+                    I confirm that the information provided is accurate and I
+                    have the authority to list this business. I agree to the{" "}
+                    <Link
+                      href="/about"
+                      className="text-primary hover:underline"
+                    >
                       Terms of Service
                     </Link>{" "}
                     and{" "}
-                    <Link href="/about" className="text-primary hover:underline">
+                    <Link
+                      href="/about"
+                      className="text-primary hover:underline"
+                    >
                       Privacy Policy
                     </Link>
                     .
@@ -398,12 +590,14 @@ export default function ListBusinessPage() {
               key={item.title}
               className="rounded-lg border border-border bg-card p-4 text-center"
             >
-              <h3 className="text-sm font-semibold text-foreground">{item.title}</h3>
+              <h3 className="text-sm font-semibold text-foreground">
+                {item.title}
+              </h3>
               <p className="mt-1 text-xs text-muted-foreground">{item.desc}</p>
             </div>
           ))}
         </div>
       </section>
     </>
-  )
+  );
 }
