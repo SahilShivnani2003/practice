@@ -18,7 +18,7 @@ const navLinks = [
   { href: "/listings", label: "Listings", icon: ShoppingBag },
   { href: "/categories/education-training", label: "Careers", icon: Briefcase },
   { href: "/categories/real-estate", label: "Properties", icon: Building2 },
-  { href: "/product", label: "Products & Services", icon: LayoutGrid },
+  { href: "/product", label: "Products", icon: LayoutGrid },
   { href: "/tourist-places", label: "Tourist Places", icon: LayoutGrid },
 ];
 
